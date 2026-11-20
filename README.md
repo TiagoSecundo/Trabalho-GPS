@@ -1,75 +1,35 @@
-# React + TypeScript + Vite
+# Forma — cadastro de usuários
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação React com uma tela de cadastro responsiva, API local em Express e persistência SQLite.
 
-Currently, two official plugins are available:
+## Executar localmente
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+O comando inicia a interface Vite e a API em paralelo. Abra o endereço informado pelo Vite. A API fica disponível em `http://localhost:3001`, e as chamadas `/api` da interface são encaminhadas para ela.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Para validar a versão de produção:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run build
+npm run lint
 ```
+
+## Persistência
+
+O banco `data/users.sqlite` e suas tabelas são criados automaticamente ao iniciar a API. Os e-mails são normalizados e únicos no SQLite, que é a autoridade final para impedir cadastros duplicados. As senhas são armazenadas como hashes `scrypt`; nunca são enviadas de volta pela API nem gravadas no `localStorage`.
+
+A interface consulta `GET /api/users` ao iniciar e guarda os perfis públicos no `localStorage` (`forma.registered-users`). `POST /api/users` valida e grava novos usuários. O cache local ajuda na experiência, mas a verificação no banco também é feita no servidor.
+
+O login é feito em `/login`: `POST /api/users/login` valida a senha contra o hash salvo no SQLite. Após o cadastro, `/resultado` confirma a operação; após o login, a mesma tela confirma a autenticação e direciona para `/inicio`.
+
+## Organização
+
+- `src/features/users/pages`: tela de cadastro.
+- `src/features/users/pages`: telas de login, confirmação e área inicial.
+- `src/features/users/services`: comunicação com a API e persistência local.
+- `server/routes`: endpoints de usuários.
+- `server/database.ts`: inicialização e esquema SQLite.
