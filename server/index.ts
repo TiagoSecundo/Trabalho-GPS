@@ -1,4 +1,5 @@
 import express from 'express'
+import caronasRouter from './routes/caronas.js'
 import usersRouter from './routes/users.js'
 
 const app = express()
@@ -6,6 +7,7 @@ const port = Number(process.env.API_PORT ?? 3001)
 
 app.use(express.json({ limit: '10kb' }))
 app.use('/api/users', usersRouter)
+app.use('/api/caronas', caronasRouter)
 
 app.use(
   (
