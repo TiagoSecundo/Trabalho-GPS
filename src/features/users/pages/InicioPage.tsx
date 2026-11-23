@@ -24,12 +24,21 @@ export default function InicioPage() {
         <p className="mt-3 text-sm leading-6 text-slate-500">
           Seu cadastro e seu login foram concluídos. Esta tela confirma o redirecionamento para o site.
         </p>
-        <Link
-          className="mt-8 inline-flex rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-[#1d4260] no-underline transition hover:bg-slate-50"
-          to="/login"
-        >
-          Sair
-        </Link>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            className="inline-flex rounded-xl bg-[#1d4260] px-5 py-3 text-sm font-semibold text-white no-underline transition hover:bg-[#173650]"
+            state={{ userName: state.userName }}
+            to="/busca"
+          >
+            Buscar carona
+          </Link>
+          <Link
+            className="inline-flex rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-[#1d4260] no-underline transition hover:bg-slate-50"
+            to="/login"
+          >
+            Sair
+          </Link>
+        </div>
       </section>
     </main>
   )
