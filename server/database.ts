@@ -37,12 +37,16 @@ database.exec(`
 seedCaronas()
 
 // Insere caronas de exemplo (datas relativas ao dia atual) enquanto não existe
-// a tela de oferecer carona. Só roda com a tabela vazia.
-function seedCaronas() {
-  const { total } = database
-    .prepare('SELECT COUNT(*) AS total FROM caronas')
-    .get() as { total: number }
-  if (total > 0) return
+// a tela de oferecer carona. Se não houver nenhuma carona futura (banco novo ou
+// datas de demonstração vencidas), renova os exemplos automaticamente.
+export function seedCaronas() {
+  const hoje = formatarDataIso(new Date())
+  const { futuras } = database
+    .prepare('SELECT COUNT(*) AS futuras FROM caronas WHERE data >= ?')
+    .get(hoje) as { futuras: number }
+  if (futuras > 0) return
+
+  database.prepare('DELETE FROM caronas WHERE data < ?').run(hoje)
 
   const exemplos: Array<
     [string, string, string, number, string, number, number, number, string]

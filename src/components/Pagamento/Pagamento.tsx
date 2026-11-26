@@ -1,5 +1,6 @@
 
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import './Pagamento.css'
 
 // Métodos disponíveis na simulação
@@ -7,18 +8,23 @@ type FormaPagamento = 'pix' | 'cartao'
 
 // Estrutura dos dados recebidos da tela de busca
 export type DadosCarona = {
+  id?: string
   origem: string
   destino: string
   data: string
   horario: string
   motorista: string
+  veiculo?: string
   valorTotal: number
   quantidadePassageiros: number
+  passageirosReserva?: number
 }
 
 // Propriedades opcionais para facilitar a integração
 type PagamentoProps = {
   carona?: DadosCarona
+  enviando?: boolean
+  erroReserva?: string
   onVoltar?: () => void
   onConfirmar?: (forma: FormaPagamento) => void
 }
@@ -47,6 +53,8 @@ function formatarMoeda(valor: number) {
 
 function Pagamento({
   carona = caronaExemplo,
+  enviando = false,
+  erroReserva = '',
   onVoltar,
   onConfirmar,
 }: PagamentoProps) {
@@ -54,17 +62,19 @@ function Pagamento({
   const [formaPagamento, setFormaPagamento] =
     useState<FormaPagamento>('pix')
 
-  // Controla a confirmação simulada da reserva
+  // Controla a confirmação simulada da reserva (quando usado isoladamente)
   const [confirmado, setConfirmado] = useState(false)
 
   // Armazena a mensagem do botão de cópia
   const [mensagemCopia, setMensagemCopia] = useState('')
 
-  // Calcula o valor individual da viagem
+  // Calcula o valor por passageiro e o total correspondente aos lugares reservados
+  const lugaresReservados = carona.passageirosReserva ?? 1
   const valorIndividual =
     carona.quantidadePassageiros > 0
       ? carona.valorTotal / carona.quantidadePassageiros
       : 0
+  const valorTotalReserva = valorIndividual * lugaresReservados
 
   // Altera a forma de pagamento e reinicia a confirmação
   function selecionarPagamento(forma: FormaPagamento) {
@@ -83,10 +93,13 @@ function Pagamento({
     }
   }
 
-  // Simula a confirmação e avisa o componente integrador
+  // Solicita a confirmação ao componente integrador (ou simula localmente)
   function confirmarReserva() {
+    if (onConfirmar) {
+      onConfirmar(formaPagamento)
+      return
+    }
     setConfirmado(true)
-    onConfirmar?.(formaPagamento)
   }
 
   return (
@@ -96,16 +109,28 @@ function Pagamento({
         {/* Cabeçalho do sistema */}
         <header className="pg-cabecalho">
           <div className="pg-barra-superior">
-            <strong className="pg-marca">Forma</strong>
+            <Link to="/busca" className="pg-marca-link">
+              <span className="pg-marca-icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" width="24" height="24">
+                  <path
+                    d="M5 18.5V9.7L12 5l7 4.7v8.8h-5v-5.8h-4v5.8H5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              forma
+            </Link>
 
-            {/* O botão aparece quando a navegação for integrada */}
+            {/* Botão destacado para retornar à busca e revisar a escolha */}
             {onVoltar && (
               <button
                 type="button"
                 className="pg-voltar"
                 onClick={onVoltar}
               >
-                ← Voltar
+                ← Voltar à busca
               </button>
             )}
           </div>
@@ -266,7 +291,7 @@ function Pagamento({
               </div>
             </div>
 
-            {/* Data e motorista */}
+            {/* Data, motorista e veículo */}
             <div className="pg-detalhes">
               <div>
                 <span>Data</span>
@@ -277,6 +302,13 @@ function Pagamento({
                 <span>Motorista</span>
                 <strong>{carona.motorista}</strong>
               </div>
+
+              {carona.veiculo && (
+                <div className="pg-detalhe-largo">
+                  <span>Veículo</span>
+                  <strong>{carona.veiculo}</strong>
+                </div>
+              )}
             </div>
 
             {/* Divisão dos custos */}
@@ -294,24 +326,51 @@ function Pagamento({
                   {carona.quantidadePassageiros}
                 </strong>
               </div>
+
+              <div>
+                <span>Valor por passageiro</span>
+                <strong>
+                  {formatarMoeda(valorIndividual)}
+                </strong>
+              </div>
+
+              <div>
+                <span>Vagas na sua reserva</span>
+                <strong>
+                  {lugaresReservados}{' '}
+                  {lugaresReservados === 1 ? 'passageiro' : 'passageiros'}
+                </strong>
+              </div>
             </div>
 
-            {/* Valor individual destacado */}
+            {/* Valor total a pagar destacado */}
             <div className="pg-total">
-              <span>Você paga</span>
-              <strong>{formatarMoeda(valorIndividual)}</strong>
+              <span>
+                {lugaresReservados > 1
+                  ? `Total a pagar (${lugaresReservados} vagas)`
+                  : 'Você paga'}
+              </span>
+              <strong>{formatarMoeda(valorTotalReserva)}</strong>
             </div>
 
-            {/* Confirmação fictícia da reserva */}
+            {erroReserva && (
+              <div className="pg-erro" role="alert">
+                {erroReserva}
+              </div>
+            )}
+
+            {/* Confirmação da reserva */}
             <button
               type="button"
               className="pg-confirmar"
-              disabled={confirmado || carona.quantidadePassageiros <= 0}
+              disabled={confirmado || enviando || carona.quantidadePassageiros <= 0}
               onClick={confirmarReserva}
             >
-              {confirmado
-                ? 'Reserva simulada confirmada ✓'
-                : `Confirmar reserva · ${formatarMoeda(valorIndividual)}`}
+              {enviando
+                ? 'Confirmando reserva...'
+                : confirmado
+                  ? 'Reserva simulada confirmada ✓'
+                  : `Confirmar reserva · ${formatarMoeda(valorTotalReserva)}`}
             </button>
 
             {/* Feedback apresentado após a confirmação */}

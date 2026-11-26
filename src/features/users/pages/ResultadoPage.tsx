@@ -1,8 +1,11 @@
+import { useEffect } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { getCurrentUser } from '../services/userService'
 
 interface ResultState {
   flow: 'cadastro' | 'login'
   userName: string
+  email?: string
   localCacheSaved?: boolean
 }
 
@@ -10,13 +13,18 @@ export default function ResultadoPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state as ResultState | null
+  const currentUser = getCurrentUser()
+
+  useEffect(() => {
+    document.title = 'Confirmação | Forma'
+  }, [])
 
   if (
     !state ||
     (state.flow !== 'cadastro' && state.flow !== 'login') ||
     typeof state.userName !== 'string'
   ) {
-    return <Navigate to="/" replace />
+    return <Navigate to={currentUser ? '/busca' : '/'} replace />
   }
 
   const isRegistration = state.flow === 'cadastro'
@@ -30,7 +38,7 @@ export default function ResultadoPage() {
           </svg>
         </div>
         <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-[#438d81]">
-          {isRegistration ? 'Cadastro confirmado' : 'Acesso confirmado'}
+          {isRegistration ? 'Cadastro realizado com sucesso' : 'Acesso confirmado'}
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#172d52]">
           {isRegistration ? 'Tudo certo, ' : 'Bem-vindo(a), '}
@@ -38,17 +46,18 @@ export default function ResultadoPage() {
         </h1>
         <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500">
           {isRegistration
-            ? 'Seus dados foram salvos no banco de dados. Agora você já pode entrar com seu e-mail e senha.'
-            : 'Seu e-mail e senha foram validados. Você já pode acessar a área inicial.'}
+            ? 'Cadastro realizado com sucesso. Agora você já pode buscar sua carona.'
+            : 'Seu e-mail e senha foram validados. Você já pode buscar sua carona.'}
         </p>
         {isRegistration && state.localCacheSaved === false && (
           <p role="status" className="mt-4 text-xs text-amber-700">
             O cadastro foi salvo no banco, mas não foi possível atualizar o armazenamento local.
           </p>
         )}
-        {isRegistration ? (
+        {isRegistration && !currentUser ? (
           <Link
             className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-[#1d4260] px-5 py-3.5 text-sm font-semibold text-white no-underline transition hover:bg-[#173650] sm:w-auto sm:min-w-52"
+            state={state.email ? { email: state.email } : undefined}
             to="/login"
           >
             Fazer login
@@ -56,10 +65,10 @@ export default function ResultadoPage() {
         ) : (
           <button
             className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-[#1d4260] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#173650] sm:w-auto sm:min-w-52"
-            onClick={() => navigate('/inicio', { state: { userName: state.userName } })}
+            onClick={() => navigate('/busca', { state: { userName: state.userName } })}
             type="button"
           >
-            Acessar o site
+            Buscar carona
           </button>
         )}
       </section>

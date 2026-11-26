@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  getCurrentUser,
   getRegisteredUsers,
   registerUser,
+  saveCurrentUser,
   saveRegisteredUsers,
 } from "../services/userService";
 import type { RegisteredUser } from "../types";
@@ -28,8 +30,10 @@ export default function TelaCadastro() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const currentUser = getCurrentUser();
 
   useEffect(() => {
+    document.title = "Criar conta | Forma";
     let active = true;
 
     getRegisteredUsers()
@@ -83,14 +87,17 @@ export default function TelaCadastro() {
       const updatedUsers = [newUser, ...users];
       setUsers(updatedUsers);
 
-      let localCacheSaved = true;
+      saveCurrentUser(newUser);
       try {
         saveRegisteredUsers(updatedUsers);
       } catch {
-        localCacheSaved = false;
+        // Ignora falha de cache local; o SQLite e a sessão seguem ativos
       }
-      navigate("/resultado", {
-        state: { flow: "cadastro", userName: newUser.name, localCacheSaved },
+      navigate("/busca", {
+        state: {
+          userName: newUser.name,
+          welcomeMessage: "Cadastro realizado com sucesso! Sua conta já está conectada.",
+        },
       });
     } catch (requestError) {
       setError(
@@ -221,6 +228,20 @@ export default function TelaCadastro() {
                 Preencha os campos abaixo para começar.
               </p>
             </div>
+
+            {currentUser && (
+              <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-[#438d81]/30 bg-[#eaf8f5] px-4 py-3 text-xs text-[#172d52]">
+                <span>
+                  Sessão ativa como <strong>{currentUser.name.split(" ")[0]}</strong>.
+                </span>
+                <Link
+                  to="/busca"
+                  className="shrink-0 font-semibold text-[#2f6f64] hover:underline"
+                >
+                  Ir para busca →
+                </Link>
+              </div>
+            )}
 
             {error && (
               <div

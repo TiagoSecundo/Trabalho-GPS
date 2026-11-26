@@ -1,5 +1,6 @@
+import { randomBytes } from 'node:crypto'
 import { Router } from 'express'
-import { database, formatarDataIso } from '../database.js'
+import { database, formatarDataIso, seedCaronas } from '../database.js'
 
 interface CaronaArmazenada {
   id: string
@@ -44,6 +45,7 @@ const SELECT_CARONAS = `
 
 // Lista as cidades cadastradas, usada nas sugestões dos campos de busca
 router.get('/cidades', (_request, response) => {
+  seedCaronas()
   const linhas = database
     .prepare('SELECT origem AS cidade FROM caronas UNION SELECT destino FROM caronas ORDER BY cidade')
     .all() as Array<{ cidade: string }>
@@ -53,6 +55,7 @@ router.get('/cidades', (_request, response) => {
 
 // Busca caronas futuras e calcula o match com o pedido do passageiro
 router.get('/busca', (request, response) => {
+  seedCaronas()
   const origem = lerTexto(request.query.origem)
   const destino = lerTexto(request.query.destino)
   const data = lerTexto(request.query.data)
@@ -88,6 +91,73 @@ router.get('/busca', (request, response) => {
 
   response.json(resultados)
 })
+
+// Confirma a reserva abatendo as vagas disponíveis no SQLite
+router.post('/:id/reservar', (request, response) => {
+  const id = request.params.id.trim()
+  const body = request.body as Record<string, unknown> | null
+  const passageiros = Number(body?.passageiros ?? 1)
+
+  if (!id) {
+    response.status(400).json({ error: 'Identificador da carona inválido.' })
+    return
+  }
+
+  if (!Number.isInteger(passageiros) || passageiros < 1 || passageiros > 4) {
+    response.status(400).json({ error: 'Informe de 1 a 4 passageiros.' })
+    return
+  }
+
+  const hoje = formatarDataIso(new Date())
+  const reservarTransacao = database.transaction(() => {
+    const carona = database
+      .prepare(`${SELECT_CARONAS} WHERE id = ? AND data >= ?`)
+      .get(id, hoje) as CaronaArmazenada | undefined
+
+    if (!carona) {
+      return { status: 404 as const, erro: 'Carona não encontrada ou já encerrada.' }
+    }
+
+    const vagasDisponiveis = carona.vagasTotal - carona.vagasOcupadas
+    if (vagasDisponiveis < passageiros) {
+      return {
+        status: 409 as const,
+        erro:
+          vagasDisponiveis <= 0
+            ? 'Esta carona não possui mais vagas disponíveis.'
+            : `Restam apenas ${vagasDisponiveis} ${vagasDisponiveis === 1 ? 'vaga disponível' : 'vagas disponíveis'} nesta carona.`,
+      }
+    }
+
+    database
+      .prepare('UPDATE caronas SET vagas_ocupadas = vagas_ocupadas + ? WHERE id = ?')
+      .run(passageiros, id)
+
+    return {
+      status: 200 as const,
+      dados: {
+        codigoReserva: gerarCodigoReserva(),
+        vagasOcupadas: carona.vagasOcupadas + passageiros,
+        vagasDisponiveis: vagasDisponiveis - passageiros,
+      },
+    }
+  })
+
+  const resultado = reservarTransacao()
+  if (resultado.status !== 200) {
+    response.status(resultado.status).json({ error: resultado.erro })
+    return
+  }
+
+  response.status(201).json(resultado.dados)
+})
+
+// Código curto e legível, sem caracteres ambíguos (0/O, 1/I)
+function gerarCodigoReserva(): string {
+  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = randomBytes(6)
+  return 'FRM-' + Array.from(bytes, (b) => alfabeto[b % alfabeto.length]).join('')
+}
 
 function avaliarCarona(
   carona: CaronaArmazenada,

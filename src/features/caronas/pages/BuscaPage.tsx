@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { clearCurrentUser, getCurrentUser } from '../../users/services/userService'
 import {
   buscarCaronas,
   listarCidades,
@@ -10,6 +11,7 @@ import type { CaronaEncontrada, FiltrosBusca, Ordenacao } from '../types'
 
 interface EstadoNavegacao {
   userName?: string
+  welcomeMessage?: string
 }
 
 interface EstadoResultado {
@@ -24,7 +26,10 @@ const estiloCampo =
 export default function BuscaPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const userName = (location.state as EstadoNavegacao | null)?.userName
+  const estadoNavegacao = location.state as EstadoNavegacao | null
+  const usuarioAtual = getCurrentUser()
+  const userName = estadoNavegacao?.userName ?? usuarioAtual?.name
+  const welcomeMessage = estadoNavegacao?.welcomeMessage
   const [parametros, setParametros] = useSearchParams()
 
   // Os filtros ficam na URL: ao voltar do pagamento, a busca é refeita sozinha
@@ -43,6 +48,7 @@ export default function BuscaPage() {
   const hoje = dataLocalIso(new Date())
 
   useEffect(() => {
+    document.title = 'Buscar caronas | Forma'
     listarCidades()
       .then(setCidades)
       .catch(() => setCidades([]))
@@ -103,12 +109,21 @@ export default function BuscaPage() {
     })
   }
 
+  function sair() {
+    clearCurrentUser()
+    navigate('/login', { replace: true })
+  }
+
+  if (!userName) {
+    return <Navigate to="/login" replace />
+  }
+
   return (
     <main className="min-h-screen bg-[#f4f6fb] px-4 pb-16 sm:px-6">
       <div className="mx-auto max-w-5xl">
         <header className="flex items-center justify-between py-6">
           <Link
-            to="/login"
+            to="/busca"
             className="inline-flex items-center gap-3 text-lg font-semibold tracking-wide text-[#172d52] no-underline"
           >
             <span className="grid size-10 place-items-center rounded-xl bg-[#172d52] text-[#a7e2d2]">
@@ -118,12 +133,29 @@ export default function BuscaPage() {
             </span>
             forma
           </Link>
-          {userName && (
+          <div className="flex items-center gap-4">
             <span className="text-sm text-slate-500">
               Olá, <strong className="font-semibold text-[#172d52]">{userName.split(' ')[0]}</strong>
             </span>
-          )}
+            <button
+              type="button"
+              onClick={sair}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1d4260] transition hover:bg-slate-50"
+            >
+              Sair
+            </button>
+          </div>
         </header>
+
+        {welcomeMessage && (
+          <div
+            role="status"
+            className="mb-5 flex items-center gap-2 rounded-xl border border-[#438d81]/30 bg-[#eaf8f5] px-4 py-3 text-sm text-[#2f6f64]"
+          >
+            <span aria-hidden="true">✓</span>
+            <span>{welcomeMessage}</span>
+          </div>
+        )}
 
         <nav aria-label="Etapas da reserva" className="grid grid-cols-3 gap-2 text-xs">
           <span className="border-t-4 border-[#438d81] pt-2 font-semibold text-[#438d81]">Cadastro</span>
