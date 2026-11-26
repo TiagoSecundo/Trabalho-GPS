@@ -33,3 +33,11 @@ O login é feito em `/login`: `POST /api/users/login` valida a senha contra o ha
 - `src/features/users/services`: comunicação com a API e persistência local.
 - `server/routes`: endpoints de usuários.
 - `server/database.ts`: inicialização e esquema SQLite.
+
+## Equipe de desenvolvimento
+
+- **GP do time de dev:** Tiago Secundo Santos
+- **Dev 1 (tela de cadastro):** Hudson Jr Xavier da Silva
+- **Dev 2 (tela de busca):** Nadson Nascimento Santos
+- **Dev 3 (tela de pagamento):** Helen Geovanna Gonçalves
+- **Dev 4 (integração):** Augusto Henrique Santos de Oliveira
