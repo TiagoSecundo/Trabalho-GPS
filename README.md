@@ -54,8 +54,9 @@ docker compose restart
 
 ## Equipe de desenvolvimento
 
-- `src/features/users/pages`: tela de cadastro.
-- `src/features/users/pages`: telas de login, confirmação e área inicial.
-- `src/features/users/services`: comunicação com a API e persistência local.
-- `server/routes`: endpoints de usuários.
-- `server/database.ts`: inicialização e esquema SQLite.
+- **GP do time de dev:** Tiago Secundo Santos
+- **Dev 1 (tela de cadastro):** Hudson Jr Xavier da Silva
+- **Dev 2 (tela de busca):** Nadson Nascimento Santos
+- **Dev 3 (tela de pagamento):** Helen Geovanna Gonçalves
+- **Dev 4 (integração):** Augusto Henrique Santos de Oliveira
+
