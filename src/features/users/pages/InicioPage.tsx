@@ -1,15 +1,29 @@
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { clearCurrentUser, getCurrentUser } from '../services/userService'
 
 interface HomeState {
-  userName: string
+  userName?: string
 }
 
 export default function InicioPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const state = location.state as HomeState | null
+  const currentUser = getCurrentUser()
+  const userName = state?.userName ?? currentUser?.name
 
-  if (!state || typeof state.userName !== 'string') {
+  useEffect(() => {
+    document.title = 'Início | Forma'
+  }, [])
+
+  if (!userName) {
     return <Navigate to="/login" replace />
+  }
+
+  function handleLogout() {
+    clearCurrentUser()
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -19,25 +33,26 @@ export default function InicioPage() {
           Área inicial
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#172d52] sm:text-4xl">
-          Olá, {state.userName.split(' ')[0]}!
+          Olá, {userName.split(' ')[0]}!
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-500">
-          Seu cadastro e seu login foram concluídos. Esta tela confirma o redirecionamento para o site.
+          Encontre caronas compatíveis com o seu trajeto e divida os custos da viagem com praticidade.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             className="inline-flex rounded-xl bg-[#1d4260] px-5 py-3 text-sm font-semibold text-white no-underline transition hover:bg-[#173650]"
-            state={{ userName: state.userName }}
+            state={{ userName }}
             to="/busca"
           >
             Buscar carona
           </Link>
-          <Link
-            className="inline-flex rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-[#1d4260] no-underline transition hover:bg-slate-50"
-            to="/login"
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-[#1d4260] transition hover:bg-slate-50"
           >
             Sair
-          </Link>
+          </button>
         </div>
       </section>
     </main>

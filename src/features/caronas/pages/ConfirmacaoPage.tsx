@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import type { DadosCarona } from '../../../components/Pagamento/Pagamento'
+import { clearCurrentUser, getCurrentUser } from '../../users/services/userService'
 
 export interface EstadoConfirmacao {
   carona: DadosCarona
@@ -16,16 +17,34 @@ const nomesPagamento: Record<EstadoConfirmacao['formaPagamento'], string> = {
 
 export default function ConfirmacaoPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const estado = location.state as EstadoConfirmacao | null
+  const usuarioAtual = getCurrentUser()
   const [mensagemCopia, setMensagemCopia] = useState('')
+
+  useEffect(() => {
+    document.title = 'Reserva confirmada | Forma'
+  }, [])
+
+  const userName = estado?.userName ?? usuarioAtual?.name
+  if (!userName) {
+    return <Navigate to="/login" replace />
+  }
 
   if (!estado?.carona || !estado.codigoReserva) {
     return <Navigate to="/busca" replace />
   }
 
-  const { carona, formaPagamento, codigoReserva, userName } = estado
-  const valorPago =
+  const { carona, formaPagamento, codigoReserva } = estado
+  const lugaresReservados = carona.passageirosReserva ?? 1
+  const valorPorPassageiro =
     carona.quantidadePassageiros > 0 ? carona.valorTotal / carona.quantidadePassageiros : 0
+  const valorPago = valorPorPassageiro * lugaresReservados
+
+  function sair() {
+    clearCurrentUser()
+    navigate('/login', { replace: true })
+  }
 
   async function copiarCodigo() {
     try {
@@ -39,15 +58,30 @@ export default function ConfirmacaoPage() {
   return (
     <main className="min-h-screen bg-[#f4f6fb] px-4 pb-16 sm:px-6">
       <div className="mx-auto max-w-2xl">
-        <header className="py-6">
-          <span className="inline-flex items-center gap-3 text-lg font-semibold tracking-wide text-[#172d52]">
+        <header className="flex items-center justify-between py-6">
+          <Link
+            to="/busca"
+            className="inline-flex items-center gap-3 text-lg font-semibold tracking-wide text-[#172d52] no-underline"
+          >
             <span className="grid size-10 place-items-center rounded-xl bg-[#172d52] text-[#a7e2d2]">
               <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
                 <path d="M5 18.5V9.7L12 5l7 4.7v8.8h-5v-5.8h-4v5.8H5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
               </svg>
             </span>
             forma
-          </span>
+          </Link>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-slate-500">
+              Olá, <strong className="font-semibold text-[#172d52]">{userName.split(' ')[0]}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={sair}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1d4260] transition hover:bg-slate-50"
+            >
+              Sair
+            </button>
+          </div>
         </header>
 
         <nav aria-label="Etapas da reserva" className="grid grid-cols-3 gap-2 text-xs">
@@ -72,8 +106,10 @@ export default function ConfirmacaoPage() {
               Carona confirmada{userName ? `, ${userName.split(' ')[0]}` : ''}!
             </h1>
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
-              Sua vaga com {carona.motorista} está garantida. Guarde o código abaixo para apresentar no
-              embarque.
+              {lugaresReservados > 1
+                ? `Suas ${lugaresReservados} vagas com ${carona.motorista} estão garantidas.`
+                : `Sua vaga com ${carona.motorista} está garantida.`}{' '}
+              Guarde o código abaixo para apresentar no embarque.
             </p>
 
             <div className="mx-auto mt-6 flex max-w-xs items-center justify-between gap-3 rounded-2xl border border-dashed border-[#438d81]/50 bg-[#eaf8f5]/50 px-5 py-3">
@@ -112,11 +148,16 @@ export default function ConfirmacaoPage() {
               </div>
             </div>
 
-            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-4">
+            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
               <Detalhe rotulo="Data" valor={carona.data} />
               <Detalhe rotulo="Motorista" valor={carona.motorista} />
+              {carona.veiculo && <Detalhe rotulo="Veículo" valor={carona.veiculo} />}
+              <Detalhe
+                rotulo="Vagas reservadas"
+                valor={`${lugaresReservados} ${lugaresReservados === 1 ? 'passageiro' : 'passageiros'}`}
+              />
               <Detalhe rotulo="Pagamento" valor={nomesPagamento[formaPagamento]} />
-              <Detalhe rotulo="Você pagou" valor={formatarMoeda(valorPago)} destaque />
+              <Detalhe rotulo="Total pago" valor={formatarMoeda(valorPago)} destaque />
             </dl>
 
             <ul className="mt-7 space-y-2 rounded-2xl bg-white p-4 text-sm text-slate-600">

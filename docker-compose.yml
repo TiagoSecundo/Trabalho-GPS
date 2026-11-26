@@ -1,0 +1,17 @@
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    container_name: forma-app
+    ports:
+      - "5173:5173"
+      - "3001:3001"
+    volumes:
+      - ./src:/app/src
+      - ./server:/app/server
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./data:/app/data
+    restart: unless-stopped

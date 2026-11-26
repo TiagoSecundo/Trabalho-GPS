@@ -1,13 +1,24 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { loginUser } from '../services/userService'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { getCurrentUser, loginUser, saveCurrentUser } from '../services/userService'
+
+interface LoginLocationState {
+  email?: string
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const location = useLocation()
+  const prefilledEmail = (location.state as LoginLocationState | null)?.email ?? ''
+  const currentUser = getCurrentUser()
+  const [email, setEmail] = useState(prefilledEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    document.title = 'Entrar | Forma'
+  }, [])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -16,8 +27,9 @@ export default function LoginPage() {
 
     try {
       const user = await loginUser({ email: email.trim().toLowerCase(), password })
-      navigate('/resultado', {
-        state: { flow: 'login', userName: user.name },
+      saveCurrentUser(user)
+      navigate('/busca', {
+        state: { userName: user.name },
       })
     } catch (requestError) {
       setError(
@@ -51,6 +63,17 @@ export default function LoginPage() {
         <p className="mt-2 text-sm leading-6 text-slate-500">
           Informe seus dados para acessar.
         </p>
+
+        {currentUser && (
+          <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#438d81]/30 bg-[#eaf8f5] px-4 py-3 text-xs text-[#172d52]">
+            <span>
+              Sessão ativa como <strong>{currentUser.name.split(' ')[0]}</strong>.
+            </span>
+            <Link to="/busca" className="shrink-0 font-semibold text-[#2f6f64] hover:underline">
+              Ir para busca →
+            </Link>
+          </div>
+        )}
 
         {error && (
           <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

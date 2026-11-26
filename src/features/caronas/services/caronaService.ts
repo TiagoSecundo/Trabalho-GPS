@@ -45,12 +45,39 @@ export function paraDadosPagamento(
   const [ano, mes, dia] = carona.data.split('-')
 
   return {
+    id: carona.id,
     origem: carona.origem,
     destino: carona.destino,
     data: `${dia}/${mes}/${ano}`,
     horario: carona.horario,
     motorista: carona.motorista,
+    veiculo: carona.veiculo,
     valorTotal: carona.valorTotal,
     quantidadePassageiros: pessoasNaDivisao(carona, passageiros),
+    passageirosReserva: passageiros,
   }
+}
+
+export interface RespostaReserva {
+  codigoReserva: string
+  vagasOcupadas: number
+  vagasDisponiveis: number
+}
+
+export async function reservarCarona(
+  id: string,
+  passageiros: number,
+): Promise<RespostaReserva> {
+  const response = await fetch(`/api/caronas/${encodeURIComponent(id)}/reservar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ passageiros }),
+  })
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? 'Não foi possível confirmar a reserva.')
+  }
+
+  return (await response.json()) as RespostaReserva
 }
